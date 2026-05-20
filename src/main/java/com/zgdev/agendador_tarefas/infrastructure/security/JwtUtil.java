@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.util.Base64;
 import java.util.Date;
 
 @Service
@@ -16,20 +17,22 @@ import java.util.Date;
 public class JwtUtil {
 
     // Chave secreta usada para assinar e verificar tokens JWT
-    private final SecretKey secretKey = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final String secretKey = "c3VhLWNoYXZlLXNlY3JldGEtc3VwZXItc2VndXJhLXF1ZS1kZXZlLXNlci1iZW0tbG9uZ2E=";
 
-    public JwtUtil(String secretKey) {
+    private SecretKey getSecretKey() {
+        // Decodifica a chave secreta em Base64 padrão e cria uma SecretKey
+        byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+        return Keys.hmacShaKeyFor(keyBytes);
 
     }
 
-
     // Extrai as claims do token JWT (informações adicionais do token)
-    public Claims extractClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(secretKey) // Define a chave secreta para validar a assinatura do token
-                .build()
-                .parseClaimsJws(token) // Analisa o token JWT e obtém as claims
-                .getBody(); // Retorna o corpo das claims
+    private Claims extractClaims(String token) {
+        return Jwts.parser() // Inicia o processo de parsing do token JWT
+                .verifyWith(getSecretKey()) // Configura o parser para verificar a assinatura do token usando a chave de assinatura fornecida
+                .build() // Conclui a configuração do parser
+                .parseSignedClaims(token) // Faz o parsing do token e extrai as claims assinadas
+                .getPayload(); // Obtém o payload (corpo) do token, que contém as claims
     }
 
     // Extrai o nome de usuário do token JWT
